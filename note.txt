@@ -1,0 +1,86 @@
+# for set up
+sudo dnf install -y epel-release https://dl.crystaldb.com/yum/noarch/crystaldb-repo-1.0-1.el8.noarch.rpm
+sudo dnf install -y crystaldb15-meta
+sudo su - crys
+crys setup
+
+
+# for pgpool rpm install
+sudo dnf install -y https://dl.crystaldb.com/yum/noarch/crystaldb-repo-1.0-1.el8.noarch.rpm
+sudo dnf install -y crystaldb15
+sudo dnf install -y https://www.pgpool.net/yum/rpms/4.5/redhat/rhel-8-x86_64/pgpool-II-pg15-4.5.1-1pgdg.rhel8.x86_64.rpm
+sudo dnf install -y https://www.pgpool.net/yum/rpms/4.5/redhat/rhel-8-x86_64/pgpool-II-pg15-extensions-4.5.1-1pgdg.rhel8.x86_64.rpm
+sudo dnf install -y keepalived
+
+# for pgpool root insert key
+sudo mkdir /var/lib/pgsql
+chown -R postgres:postgres /var/lib/pgsql/
+sudo touch /var/lib/pgsql/.pgpoolkey
+sudo chmod 0600 /var/lib/pgsql/.pgpoolkey
+sudo echo 'cenoqkey' >  /var/lib/pgsql/.pgpoolkey
+sudo chown postgres:postgres /var/lib/pgsql/.pgpoolkey
+touch ~/.pgpoolkey
+chmod 0600 ~/.pgpoolkey
+echo 'cenoqkey' > ~/.pgpoolkey
+
+
+# for pgpool.conf
+listen_addresses = '*'
+port = 5555
+unix_socket_directories = '/var/run/pgpool'
+pcp_socket_dir = '/var/run/pgpool'
+pcp_listen_addresses = '*'
+pcp_port = 9898
+backend_clustering_mode = 'streaming_replication'
+load_balance_mode = on
+
+
+backend_hostname0 = '192.168.56.81'
+backend_port0 = 5555
+backend_weight0 = 1
+backend_flag0 = 'ALLOW_TO_FAILOVER'
+
+
+backend_hostname1 = '192.168.56.82'
+backend_port1 = 5555
+backend_weight1 = 1
+backend_flag1 = 'ALLOW_TO_FAILOVER'
+
+
+backend_hostname2 = '192.168.56.83'
+backend_port2 = 5555
+backend_weight2 = 1
+backend_flag2 = 'ALLOW_TO_FAILOVER'
+
+sr_check_period = 10
+sr_check_user = 'dbuser_monitor'
+#sr_check_password = 'DBUser.Monitor'
+#sr_check_database = 'postgres'
+
+health_check_period = 10
+health_check_user = 'dbuser_monitor'
+#health_check_password = 'DBUser.Monitor'
+
+failover_on_backend_error = off
+failover_if_affected_tuples_mismatch = off
+failover_command = ''
+failback_command = ''
+
+
+# for pgpool encrypt password
+pg_enc -m -f /etc/pgpool-II/pgpool.conf -u dbuser_dba DBUser.DBA
+pg_enc -m -f /etc/pgpool-II/pgpool.conf -u dbuser_monitor DBUser.Monitor
+# check encrypt password
+# cat pool_passwd
+
+
+# Edit pcp.conf
+dbuser_dba:e8d7950207888b818c48c21332009d36
+
+
+# Edit pool_hba.conf using scram-sha-256
+
+
+
+# postgresql connection string:
+postgresql://dbuser_dba:DBUser.DBA@<VIP ADDRESS>:5555/postgres
